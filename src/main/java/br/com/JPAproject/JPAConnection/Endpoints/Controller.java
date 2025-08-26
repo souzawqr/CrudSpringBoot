@@ -1,6 +1,6 @@
 package br.com.JPAproject.JPAConnection.Endpoints;
 import br.com.JPAproject.JPAConnection.entity.Users;
-import br.com.JPAproject.JPAConnection.repository.RepositoryUser;
+import br.com.JPAproject.JPAConnection.service.UsersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,33 +14,30 @@ import java.util.Optional;
 public class Controller {
 
     @Autowired
-    private RepositoryUser repositoryuser;
+    private UsersService usersService;
 
 
     @GetMapping("/getAll")
     public ResponseEntity<List<Users>> getAllUsers() {
-        List<Users> UsersList;
         try {
-            UsersList = repositoryuser.findAll();
+            List<Users> usersList = usersService.getAllUsers();
 
-
-            if (UsersList.isEmpty()) {
+            if (usersList.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
 
+            return new ResponseEntity<>(usersList, HttpStatus.OK);
         } catch (Exception ex) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        return new ResponseEntity<>(UsersList, HttpStatus.OK);
     }
 
-    @GetMapping("/GetById/{id}")
-    public ResponseEntity<Object> getById(@PathVariable Long id){
-       Optional<Users> userData = repositoryuser.findById(id);
+    @GetMapping("/getById/{id}")
+    public ResponseEntity<Users> getById(@PathVariable Long id){
+       Optional<Users> userData = usersService.getUserById(id);
 
        if (userData.isPresent()){
            return new ResponseEntity<>(userData.get(), HttpStatus.OK);
-
        }
 
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -48,32 +45,34 @@ public class Controller {
 
     @PostMapping("/addUser")
     public ResponseEntity<Users> addUser(@RequestBody Users users) {
-        Users user = repositoryuser.save(users);
-
-        return new ResponseEntity<>(user, HttpStatus.OK) ;
+        try {
+            Users user = usersService.createUser(users);
+            return new ResponseEntity<>(user, HttpStatus.CREATED);
+        } catch (Exception ex) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 
-    @PostMapping("/updateUser")
+    @PutMapping("/updateUser")
     public ResponseEntity<Users> updateUsers(@RequestBody Users users){
+        Optional<Users> updatedUser = usersService.updateUser(users);
 
-        Optional<Users> user = Optional.of(repositoryuser.save(users));
-
-        if (user.isPresent()){
-
-            return new ResponseEntity<>(user.get(), HttpStatus.OK);
-
+        if (updatedUser.isPresent()){
+            return new ResponseEntity<>(updatedUser.get(), HttpStatus.OK);
         }
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
+
     @DeleteMapping("/deleteUserById/{id}")
-        public ResponseEntity<Users> deleteUserById(@PathVariable Long id){
-        repositoryuser.deleteById(id);
-        return new ResponseEntity<>( HttpStatus.OK);
-
-
-            }
-
+    public ResponseEntity<Void> deleteUserById(@PathVariable Long id){
+        boolean deleted = usersService.deleteUser(id);
+        
+        if (deleted) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
 
 }
 
